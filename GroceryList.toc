@@ -2,7 +2,7 @@
 ## Title: Grocery List
 ## Notes: Tracks profession material requirements against inventory and bank.
 ## Author: Breadfan01
-## Version: 0.0.3
+## Version: 0.3.0
 ## SavedVariables: GroceryListDB
 ## RequiredDeps: ProfessionDB
 
