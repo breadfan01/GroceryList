@@ -1,4 +1,4 @@
-# Profession Materials 0.2.0
+# Grocery List 0.3.0
 
 Profession material tracker for WoW Forever.
 
