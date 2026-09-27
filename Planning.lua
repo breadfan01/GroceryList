@@ -27,7 +27,8 @@ function GL:GuidePlan(profession)
     local recipes = self:GetProfessionRecipes(profession.id) or {}
     local byName = {}
     for recipeID, recipe in pairs(recipes) do
-        local name = recipe.name or self:GetRecipeName(recipeID)
+        recipe = type(recipe) == 'table' and recipe or self:GetRecipeInfo(recipeID, profession.id)
+        local name = recipe and (recipe.name or self:GetRecipeName(recipeID, profession.id))
         if name then byName[normalize(name)] = {recipeID = recipeID, recipe = recipe} end
     end
     local steps, unresolved = {}, nil
@@ -35,17 +36,20 @@ function GL:GuidePlan(profession)
     for _, row in ipairs(guide.steps) do
         if rank < row[2] then
             local found = byName[normalize(row[3])]
-            if not found or not (found.recipe.reagents or self:GetRecipeReagents(found.recipeID)) then
-                unresolved = row[1]
-                break -- never silently replace a guide step with a different route
+            if not found and row[3] == 'Heavy Mithril Gauntlet' then
+                found = byName[normalize('Heavy Mithril Gauntlets')]
             end
-            local fraction = (row[2] - math.max(rank, row[1])) / (row[2] - row[1])
-            steps[#steps + 1] = {recipeID = found.recipeID, recipe = found.recipe,
-                professionID = profession.id, professionName = profession.name,
-                known = self:IsKnownRecipe(found.recipeID),
-                reagents = found.recipe.reagents or self:GetRecipeReagents(found.recipeID),
-                crafts = math.max(1, math.ceil(row[4] * fraction)),
-                fromSkill = math.max(rank, row[1]), toSkill = row[2]}
+            local reagents = found and (found.recipe.reagents or self:GetRecipeReagents(found.recipeID, profession.id))
+            if not reagents or not next(reagents) then
+                unresolved = unresolved or row[1]
+            else
+                local fraction = (row[2] - math.max(rank, row[1])) / (row[2] - row[1])
+                steps[#steps + 1] = {recipeID = found.recipeID, recipe = found.recipe,
+                    professionID = profession.id, professionName = profession.name,
+                    known = self:IsKnownRecipe(found.recipeID), reagents = reagents,
+                    crafts = math.max(1, math.ceil(row[4] * fraction)),
+                    fromSkill = math.max(rank, row[1]), toSkill = row[2]}
+            end
         end
     end
     return {name = profession.name, fromSkill = rank, target = 300,
@@ -84,8 +88,8 @@ function GL:BuildPlan()
             local best, bestScore, bestProbability
             for recipeID, recipe in pairs(recipes) do
                 if type(recipe) == "table" and not (self.RecipeDB.IsHiddenRecipe and self.RecipeDB:IsHiddenRecipe(recipeID)) then
-                    local required = tonumber(recipe.requiredSkill or self:GetRecipeRequiredSkill(recipeID))
-                    local reagentMap = recipe.reagents or self:GetRecipeReagents(recipeID)
+                    local required = tonumber(recipe.requiredSkill or self:GetRecipeRequiredSkill(recipeID, profession.id))
+                    local reagentMap = recipe.reagents or self:GetRecipeReagents(recipeID, profession.id)
                     if required and required <= rank and type(reagentMap) == "table" and next(reagentMap) then
                         local probability = difficultyAt(recipe, rank)
                         if probability and probability > 0 then
@@ -146,10 +150,10 @@ function GL:PrintPlan()
             plan.needsTraining and ' (train the next rank when capped)' or ''))
         for _, step in ipairs(plan.steps) do
             self:Print(('%d-%d: %s x%d%s'):format(step.fromSkill, step.toSkill,
-                step.recipe.name or self:GetRecipeName(step.recipeID) or tostring(step.recipeID),
+                step.recipe.name or self:GetRecipeName(step.recipeID, step.professionID) or tostring(step.recipeID),
                 step.crafts, step.known and '' or ' (recipe to learn)'))
         end
-        if plan.unresolved then self:Print('Guide recipe unavailable in Forever data at skill ' .. plan.unresolved .. '; later materials excluded') end
+        if plan.unresolved then self:Print('Guide recipe unavailable near skill ' .. plan.unresolved .. '; material totals are incomplete') end
         if plan.guideURL then self:Print(plan.guideURL) end
     end
 end

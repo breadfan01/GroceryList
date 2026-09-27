@@ -1,7 +1,7 @@
 local ADDON_NAME, GL = ...
 _G.GroceryList = GL
 
-GL.VERSION = "0.3.0"
+GL.VERSION = "0.3.1"
 
 local defaults = {
     mode = "planning", -- "planning", "learned", or "available"

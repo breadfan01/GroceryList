@@ -53,15 +53,39 @@ function GL:Recalculate()
     local produced = {}
     for _, entry in ipairs(tracked) do
         if self.db.mode == "planning" then
-            local output = entry.recipe.craftedItemId or (self.RecipeDB.GetCraftedItemID and self.RecipeDB:GetCraftedItemID(entry.recipeID))
+            local output = entry.recipe.craftedItemId
+            if not output and self.RecipeDB.GetCraftedItemID then
+                output = self.RecipeDB:GetCraftedItemID(entry.professionID, entry.recipeID)
+            end
             if type(output) == "number" then produced[output] = (produced[output] or 0) + entry.crafts end
         end
-        local reagents = entry.reagents or entry.recipe.reagents or self:GetRecipeReagents(entry.recipeID)
+        local reagents = entry.reagents or entry.recipe.reagents or self:GetRecipeReagents(entry.recipeID, entry.professionID)
         for itemID, quantity in pairs(reagents or {}) do
             if type(itemID) == 'number' and tonumber(quantity) then
                 local data = self.materials[itemID] or {required = 0}
                 self.materials[itemID] = data
                 data.required = data.required + quantity * (entry.crafts or 1)
+            end
+        end
+    end
+    -- Keep material tooltips for owned profession reagents even when the
+    -- remaining leveling route needs none of them. An incomplete guide must
+    -- never imply that its uncounted materials are safe to sell.
+    if self.db.mode == 'planning' then
+        for professionID, profession in pairs(self.professions) do
+            local plan = self.plan[professionID]
+            local incomplete = plan and (plan.unresolved or plan.unsupportedGuide)
+            for recipeID, recipe in pairs(self:GetProfessionRecipes(professionID) or {}) do
+                recipe = type(recipe) == 'table' and recipe or self:GetRecipeInfo(recipeID, professionID)
+                local reagents = recipe and (recipe.reagents or self:GetRecipeReagents(recipeID, professionID))
+                for itemID in pairs(reagents or {}) do
+                    if type(itemID) == 'number' and
+                        ((bagCounts[itemID] or 0) > 0 or (self.bankCounts[itemID] or 0) > 0) then
+                        local data = self.materials[itemID] or {required = 0}
+                        self.materials[itemID] = data
+                        if incomplete then data.incomplete = true end
+                    end
+                end
             end
         end
     end

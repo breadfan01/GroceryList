@@ -11,7 +11,7 @@ function GL:AddTooltipData(tooltip, itemID)
 
     local data = self.materials[itemID]
 
-    if not self.db.showZero and data.required == 0 then
+    if not self.db.showZero and data.required == 0 and data.total == 0 then
         return
     end
 
@@ -37,6 +37,8 @@ function GL:AddTooltipData(tooltip, itemID)
             1, 0.4, 0.4,
             1, 0.4, 0.4
         )
+    elseif data.incomplete then
+        tooltip:AddLine('Route incomplete: surplus unknown', 1, 0.7, 0.3)
     elseif data.surplus > 0 then
         tooltip:AddDoubleLine(
             "Surplus",

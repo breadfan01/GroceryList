@@ -30,28 +30,34 @@ function GL:GetRecipeDatabase()
     return self.RecipeDB
 end
 
-function GL:GetRecipeInfo(recipeID)
+function GL:GetRecipeInfo(recipeID, professionID)
     local db = self:GetRecipeDatabase()
     if not db or not db.GetRecipe then return nil end
-    return db:GetRecipe(recipeID)
+    local recipe = professionID and db:GetRecipe(professionID, recipeID)
+    return recipe or db:GetRecipe(recipeID)
 end
 
-function GL:GetRecipeReagents(recipeID)
+function GL:GetRecipeReagents(recipeID, professionID)
     local db = self:GetRecipeDatabase()
     if not db or not db.GetReagents then return nil end
-    return db:GetReagents(recipeID)
+    -- Current LibProfessionDB queries are scoped by profession. Older builds
+    -- also accepted a spell ID alone, so keep that as a fallback.
+    local reagents = professionID and db:GetReagents(professionID, recipeID)
+    return reagents or db:GetReagents(recipeID)
 end
 
-function GL:GetRecipeRequiredSkill(recipeID)
+function GL:GetRecipeRequiredSkill(recipeID, professionID)
     local db = self:GetRecipeDatabase()
     if not db or not db.GetRequiredSkill then return nil end
-    return db:GetRequiredSkill(recipeID)
+    local skill = professionID and db:GetRequiredSkill(professionID, recipeID)
+    return skill or db:GetRequiredSkill(recipeID)
 end
 
-function GL:GetRecipeName(recipeID)
+function GL:GetRecipeName(recipeID, professionID)
     local db = self:GetRecipeDatabase()
     if not db or not db.GetName then return nil end
-    return db:GetName(recipeID)
+    local name = professionID and db:GetName(professionID, recipeID)
+    return name or db:GetName(recipeID)
 end
 
 function GL:GetProfessionRecipes(professionID)

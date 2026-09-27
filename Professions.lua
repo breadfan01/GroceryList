@@ -57,8 +57,10 @@ function GL:GetTrackedRecipes()
 
         if recipes then
             for recipeID, recipe in pairs(recipes) do
+                recipe = type(recipe) == 'table' and recipe or self:GetRecipeInfo(recipeID, professionID)
+                if recipe then
                 local requiredSkill = recipe.requiredSkill
-                    or self:GetRecipeRequiredSkill(recipeID)
+                    or self:GetRecipeRequiredSkill(recipeID, professionID)
                     or 0
 
                 local skillOK = requiredSkill <= profession.rank
@@ -75,6 +77,7 @@ function GL:GetTrackedRecipes()
                         recipeID = recipeID,
                         recipe = recipe,
                     }
+                end
                 end
             end
         end
