@@ -1,0 +1,16 @@
+## Interface: 16001
+## Title: Grocery List
+## Notes: Tracks profession material requirements against inventory and bank.
+## Author: Breadfan01
+## Version: 0.0.3
+## SavedVariables: GroceryListDB
+## RequiredDeps: ProfessionDB
+
+Core.lua
+Database.lua
+Professions.lua
+GuideRoutes.lua
+Planning.lua
+Inventory.lua
+Tooltip.lua
+Config.lua
