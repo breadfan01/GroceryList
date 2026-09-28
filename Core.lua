@@ -1,13 +1,15 @@
 local ADDON_NAME, GL = ...
 _G.GroceryList = GL
 
-GL.VERSION = "0.3.1"
+GL.VERSION = "0.4.0"
 
 local defaults = {
     mode = "planning", -- "planning", "learned", or "available"
     showZero = false,
     includeBank = true,
     includeReagentBank = true,
+    professions = {},
+    plannedSkills = {},
 }
 
 function GL:Print(msg)
@@ -40,6 +42,7 @@ function GL:Refresh()
     if not self:InitializeRecipeDB() then return end
     self:ScanProfessions()
     self:Recalculate()
+    if self.UpdateProfessionControls then self:UpdateProfessionControls() end
 end
 
 local frame = CreateFrame("Frame")
@@ -61,6 +64,7 @@ frame:SetScript("OnEvent", function(_, event, addon)
     elseif event == "PLAYER_LOGIN" then
         C_Timer.After(1, function()
             GL:Refresh()
+            GL:CreateOptionsPanel()
         end)
     else
         if event == "BANKFRAME_OPENED" then

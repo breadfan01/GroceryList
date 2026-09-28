@@ -78,14 +78,60 @@ function GL:CreateOptionsPanel()
 
     local info = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     info:SetPoint("TOPLEFT", reagent, "BOTTOMLEFT", 4, -20)
-    info:SetWidth(560)
+    info:SetWidth(275)
     info:SetJustifyH("LEFT")
     info:SetText(
         "Recipe information is supplied by LibProfessionDB. " ..
         "The Available mode uses each recipe's required skill; " ..
         "Learned mode uses the character's live learned-recipe state. " ..
-        "Planning Mode estimates skill gains from difficulty bands and counts crafts in /gl route."
+        "Planning Mode follows the selected route. Unowned professions use the starting skill at right. " ..
+        "Learned mode counts only recipes the character actually knows."
     )
+
+    local heading = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    heading:SetPoint("TOPLEFT", panel, "TOPLEFT", 320, -80)
+    heading:SetText("Professions to track")
+
+    local skillHeading = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+    skillHeading:SetPoint("TOPLEFT", panel, "TOPLEFT", 520, -82)
+    skillHeading:SetText("Start skill")
+
+    self.professionControls = {}
+    local options = self:GetProfessionOptions()
+    for row, option in ipairs(options) do
+        local id = option.id
+        local checkbox = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
+        checkbox:SetPoint("TOPLEFT", panel, "TOPLEFT", 315, -100 - (row - 1) * 27)
+        checkbox.Text:SetText(option.name)
+        checkbox:SetScript("OnClick", function(btn)
+            self.db.professions[tostring(id)] = btn:GetChecked() and true or false
+            self:Refresh()
+        end)
+
+        local level = CreateFrame("EditBox", nil, panel, "InputBoxTemplate")
+        level:SetSize(42, 20)
+        level:SetPoint("LEFT", checkbox, "LEFT", 215, 0)
+        level:SetAutoFocus(false)
+        level:SetNumeric(true)
+        level:SetMaxLetters(3)
+        level:SetScript("OnEditFocusLost", function(box)
+            local rank = math.max(1, math.min(300, tonumber(box:GetText()) or 1))
+            if rank ~= (tonumber(self.db.plannedSkills[tostring(id)]) or 1) then
+                self.db.plannedSkills[tostring(id)] = rank
+                self:Refresh()
+            end
+        end)
+        level:SetScript("OnEnterPressed", function(box) box:ClearFocus() end)
+        level:SetScript("OnEscapePressed", function(box)
+            box:SetText(tostring(self.db.plannedSkills[tostring(id)] or 1))
+            box:ClearFocus()
+        end)
+        self.professionControls[#self.professionControls + 1] = {
+            id = id, checkbox = checkbox, level = level,
+        }
+    end
+
+    panel:SetScript("OnShow", function() self:UpdateProfessionControls() end)
 
     if Settings and Settings.RegisterCanvasLayoutCategory then
         local category = Settings.RegisterCanvasLayoutCategory(panel, panel.name)
@@ -100,8 +146,14 @@ function GL:CreateOptionsPanel()
     return panel
 end
 
-local eventFrame = CreateFrame("Frame")
-eventFrame:RegisterEvent("PLAYER_LOGIN")
-eventFrame:SetScript("OnEvent", function()
-    GL:CreateOptionsPanel()
-end)
+function GL:UpdateProfessionControls()
+    if not self.professionControls or not self.db then return end
+    for _, control in ipairs(self.professionControls) do
+        local id, checkbox, level = control.id, control.checkbox, control.level
+        local owned = self.ownedProfessions[id]
+        local selected = self.db.professions[tostring(id)]
+        checkbox:SetChecked(selected == nil and owned ~= nil or selected == true)
+        level:SetText(tostring(owned and owned.rank or self.db.plannedSkills[tostring(id)] or 1))
+        level:SetEnabled(not owned)
+    end
+end
